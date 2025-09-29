@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Weekly Picks Results</title>
+<style>
+  :root{ --bg:#0b1220; --panel:#0f172a; --line:#1f2a44; --fg:#e5e7eb; --muted:#94a3b8; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  header{padding:20px;border-bottom:1px solid var(--line);background:#0f172a;position:sticky;top:0}
+  h1{margin:0;font-size:20px}
+  .sub{color:var(--muted);font-size:13px;margin-top:6px}
+  main{max-width:1100px;margin:18px auto;padding:0 16px}
+  .card{background:#0f172a;border:1px solid var(--line);border-radius:14px;padding:14px}
+  .status{font-size:12px;color:var(--muted);margin:8px 0 12px}
+  .grid{overflow:auto;border-radius:12px;border:1px solid var(--line)}
+  table{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}
+  thead th{position:sticky;top:0;background:#0f1d36;border-bottom:1px solid #1b2a4a;text-align:left;padding:10px}
+  tbody td{padding:10px;border-bottom:1px solid #14223c}
+  tbody tr:nth-child(odd){background:#0c162b}
+  tbody tr:nth-child(even){background:#0b1528}
+  tfoot td{padding:10px;border-top:1px solid #1b2a4a;background:#0f1d36;color:#cbd5e1;font-weight:600}
+  .right{text-align:right}
+</style>
+</head>
+<body>
+  <header>
+    <h1>Weekly Picks Results</h1>
+    <div class="sub">This page always shows the latest results from <code>/data/latest.csv</code>.</div>
+  </header>
+
+  <main>
+    <section class="card">
+      <div class="status" id="status">Loading…</div>
+      <div class="grid" id="grid" aria-live="polite"></div>
+    </section>
+  </main>
+
+<script>
+// --- Config: expects CSV at /data/latest.csv
+const CSV_URL = './data/latest.csv';
+
+function parseCSV(text){
+  const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
+  return lines.map(l => l.split(',').map(s => s.trim()));
+}
+
+function renderTable(arr){
+  const grid = document.getElementById('grid');
+  if(!arr || !arr.length){ grid.innerHTML = '<div style="padding:12px;color:#94a3b8">No data</div>'; return; }
+
+  const [headers, ...rows] = arr;
+  const tbl = document.createElement('table');
+
+  const thead = document.createElement('thead');
+  const trh = document.createElement('tr');
+  trh.appendChild(document.createElement('th')).textContent = 'Game';
+  headers.forEach(h => { const th = document.createElement('th'); th.textContent = h; trh.appendChild(th); });
+  thead.appendChild(trh);
+  tbl.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  rows.forEach((r, i) => {
+    const tr = document.createElement('tr');
+    const label = document.createElement('td');
+    label.textContent = `Game ${i+1}`;
+    label.style.fontWeight = '600';
+    tr.appendChild(label);
+    headers.forEach((_, idx) => {
+      const td = document.createElement('td');
+      td.textContent = r[idx] ?? '';
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  tbl.appendChild(tbody);
+
+  grid.innerHTML = '';
+  grid.appendChild(tbl);
+}
+
+async function loadCSV(){
+  const s = document.getElementById('status');
+  try{
+    s.textContent = 'Fetching latest.csv…';
+    const r = await fetch(CSV_URL, { cache: 'no-store' });
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    const text = await r.text();
+    const arr = parseCSV(text);
+    renderTable(arr);
+    s.textContent = 'Loaded.';
+  }catch(err){
+    console.error(err);
+    s.textContent = 'Failed to load data. Ensure /data/latest.csv exists.';
+  }
+}
+
+loadCSV();
+</script>
+</body>
+</html>
